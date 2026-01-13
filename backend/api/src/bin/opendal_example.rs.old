@@ -1,0 +1,18 @@
+use std::sync::Arc;
+use std::env;
+use anyhow::Result;
+use api::AppState;
+use opendal::services::S3;
+use opendal::Operator;
+use api::utils::{ENV_VARS, get_file_op};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let state = AppState {
+      op: get_file_op().unwrap()
+    };
+    get_all(state);
+    Ok(())
+}
+
+
