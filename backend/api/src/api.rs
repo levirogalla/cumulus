@@ -1,9 +1,14 @@
+use std::str::Bytes;
+
 /// api endpoints
 
 use axum::{
    http::StatusCode, response::{IntoResponse, Response}
 };
-use opendal::Operator;
+use opendal::{Operator, options::WriteOptions};
+use serde::de;
+use tracing::{debug, info};
+use tracing_subscriber::field::debug;
 
 use crate::models::FileObjectMetadata;
 
@@ -12,17 +17,36 @@ pub async fn check_health() -> &'static str {
     "Everything looks good."
 }
 
-pub async fn upload_file(name: &str, ftype: &str) -> Result<(), Response> {
-    println!("Name: {:?}\nType: {:?}", name, ftype);
+pub async fn delete_file(op: &Operator, name: &str) -> Result<(), String> {
+    op.delete(name).await.map_err(|err| format!("failed to delete file: {}", err))?;
+    info!("successfully deleted file: {}", name);
     Ok(())
 }
 
-pub async fn get_all(op: Operator) -> Result<Vec<FileObjectMetadata>, &'static str> {
-  let files = op.list("/").await.map_err(|_| "unable to read files")?;
+pub async fn upload_file(op: &Operator, name: &str, ftype: &str, bytes: Vec<u8>) -> Result<FileObjectMetadata, String> {
+    let write_options = WriteOptions {
+        content_type: Some(ftype.to_string()),
+        ..Default::default()
+    };
+    debug!("create write options: {:?} for {}", write_options, name );
+    let raw_metadata = op.write_options(name, bytes, write_options).await.map_err(|err| format!("failed to write data: {}", err))?;
+    debug!("received raw metadata: {:?} for {}", raw_metadata, name);
+    let metadata = FileObjectMetadata::try_from((name.to_string(), raw_metadata)).map_err(|_| format!("unable to read metadata"))?;
+    info!("successfully uploaded file: {}", name);
+    debug!("file metadata: {:?}", metadata);
+    Ok(metadata)
+}
+
+pub async fn get_all(op: Operator) -> Result<Vec<FileObjectMetadata>, String> {
+  let files = op.list("/").await.map_err(|err| format!("unable to read files: {}", err))?;
+  debug!("read files from storage: {:?}", files);
+
+  debug!("transforming into server model type");
   let metas = files
     .into_iter()
-    .map(|file| FileObjectMetadata::try_from(file).map_err(|_| "unable to get metadata from files"))
-    .collect::<Result<Vec<FileObjectMetadata>, &'static str>>()?;
+    .map(|file| FileObjectMetadata::try_from(file).map_err(|err| format!("unable to get metadata from files: {}", err)))
+    .collect::<Result<Vec<FileObjectMetadata>, String>>()?;
 
   Ok(metas)
 }
+

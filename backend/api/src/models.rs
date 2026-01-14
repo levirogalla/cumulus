@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use opendal::{self, raw::Timestamp};
+use opendal::{self, Metadata, raw::Timestamp};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,21 +12,32 @@ pub struct FileObjectMetadata {
     pub etag: String,
 }
 
-impl TryFrom<opendal::Entry> for FileObjectMetadata {
-    type Error = ();
-    fn try_from(value: opendal::Entry) -> Result<Self, Self::Error> {
+impl TryFrom<(String, Metadata)> for FileObjectMetadata {
+    type Error = String;
+    fn try_from(value: (String, Metadata)) -> Result<Self, Self::Error> {
         Ok(Self {
-            key: value.path().to_string(),
-            size: value.metadata().content_length(),
-            content_type: value.metadata().content_type().unwrap_or("none").to_string(),
+            key: value.0.clone(),
+            size: value.1.content_length(),
+            content_type: value.1.content_type().unwrap_or("none").to_string(),
             last_modified: value
-                .metadata()
+                .1
                 .last_modified()
                 .map(|t| SystemTime::from(Timestamp::from(t))),
-            etag: value.metadata().etag().unwrap_or_default().to_string(),
+            etag: value.1.etag().ok_or(format!("etag not found for key {}", value.0)).unwrap_or("none").to_string(),
         })
     }
 }
+
+impl TryFrom<opendal::Entry> for FileObjectMetadata {
+    type Error = String;
+    fn try_from(value: opendal::Entry) -> Result<Self, Self::Error> {
+        let metadata = FileObjectMetadata::try_from((
+            value.name().to_string(), value.metadata().to_owned()
+        ))?;
+        Ok(metadata)
+    }
+}
+
 
 // pub struct FileCustomMetadata {}
 

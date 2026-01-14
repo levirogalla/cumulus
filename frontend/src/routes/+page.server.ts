@@ -5,24 +5,39 @@ import type { RawServerFileObjectMetadata, ServerFileObjectMetadata } from '$lib
 export const load: PageServerLoad = async () => {
 	const res = await fetch(`${PUBLIC_API_URL}/files`);
 	const rawFiles: RawServerFileObjectMetadata[] = await res.json();
-	console.log(rawFiles);
 
 	const files: ServerFileObjectMetadata[] = rawFiles.map((f) => ({
 		...f,
-		last_modified: new Date(
+		last_modified: f.last_modified ?new Date(
 			f.last_modified.secs_since_epoch * 1000 + Math.floor(f.last_modified.nanos_since_epoch / 1e6)
-		)
+		) : null,
 	}));
 
 	return { files };
 };
 
 export const actions: Actions = {
-	upload: async ({ request }) => {
-		const req = new Request(`${PUBLIC_API_URL}/upload`, request);
+  upload: async ({ request }) => {
+    const req = new Request(`${PUBLIC_API_URL}/upload`, request);
+    const res = await fetch(req);
 
-		const res = await fetch(req);
+    if (!res.ok) {
+      return { success: false };
+    }
 
-		return res.status;
-	}
+    return { success: true };
+  },
+
+	delete: async ({ request }) => {
+		const data = await request.formData();
+		const key = data.get("key");
+		const req = new Request(`${PUBLIC_API_URL}/delete/${key}`, { method: "DELETE"});
+    const res = await fetch(req);
+
+    if (!res.ok) {
+      return { success: false };
+    }
+
+    return { success: true };
+	}	
 };

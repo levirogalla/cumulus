@@ -29,9 +29,18 @@
     }
   };
     const grid: GridApi = createGrid(gridElement as HTMLElement, gridOptions);
+
+        // whenever rowData changes, push it into AG Grid
+  $effect(() => {
+    if (grid) {
+      grid.setGridOption('rowData', rowData);
+    }
+  });
   })
 
   let classes = $derived(`${className}`);
+
+
 </script>
 
 <svelte:head>
