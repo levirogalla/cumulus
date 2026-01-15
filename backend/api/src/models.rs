@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 pub struct FileObjectMetadata {
     pub key: String,
     pub size: u64,
-    pub content_type: String,
+    // pub content_type: String,
     pub last_modified: Option<SystemTime>,
     pub etag: String,
 }
@@ -18,7 +18,7 @@ impl TryFrom<(String, Metadata)> for FileObjectMetadata {
         Ok(Self {
             key: value.0.clone(),
             size: value.1.content_length(),
-            content_type: value.1.content_type().unwrap_or("none").to_string(),
+            // content_type: value.1.content_type().unwrap_or("none").to_string(),
             last_modified: value
                 .1
                 .last_modified()

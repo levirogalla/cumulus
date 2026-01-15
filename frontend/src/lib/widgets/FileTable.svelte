@@ -42,10 +42,10 @@
   let min_flex = 1;
   let width = 70;
   let fileTableCols: ColDef<ServerFileObjectMetadata>[] = [
-    { field: "key", headerName: "File Key", flex: min_flex + 1},
+    { field: "key", headerName: "File Key", flex: min_flex},
     { field: "size", headerName: "Size (bytes)", flex: min_flex},
-    { field: "content_type", headerName: "Content Type", flex: min_flex},
-    { field: "last_modified", headerName: "Last Modified", flex: min_flex + 1},
+    // { field: "content_type", headerName: "Content Type", flex: min_flex},
+    { field: "last_modified", headerName: "Last Modified", flex: min_flex},
     { field: "etag", headerName: "ETag", flex: min_flex},
     { headerName: "",  filter: false, sortable: false, cellRenderer: TableActionButtons, width: width, minWidth: width, maxWidth: width, resizable: false, suppressSizeToFit: true}
   ];
@@ -59,4 +59,4 @@
   download
 {/snippet}
 
-<Table rowData={files} columnDefs={fileTableCols} class="h-72" />
+<Table rowData={files} columnDefs={fileTableCols} class="h-full" />
