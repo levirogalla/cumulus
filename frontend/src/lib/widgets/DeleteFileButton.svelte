@@ -9,7 +9,7 @@
   let textClass = $derived(`${className}`)
 </script>
 
-<form action="/?/delete" method="post" use:enhance>
+<form action="/files/?/delete" method="post" use:enhance>
   <input type="hidden" name="key" id="key" value="{key}">
   {#if variant == "icon"}
     <ButtonIcon type="submit" iconSrc={"/trash.png"} class={iconClass}></ButtonIcon>

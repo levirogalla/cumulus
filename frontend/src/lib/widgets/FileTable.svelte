@@ -21,7 +21,7 @@
     // this.eGui.style.gap = '0.5rem'; // even spacing between icons
 
     mount(ButtonIcon, { target: this.eGui as HTMLElement, props: { onclick: ()=>{console.log(params.data.key)}, iconSrc: "/download.png", class: "m-[1px]"}})
-    mount(DeleteFileButton, { target: this.eGui as HTMLElement, props: { variant: "icon", key: params.data.key }})
+    mount(DeleteFileButton, { target: this.eGui as HTMLElement, props: { variant: "icon", key: params.data.key, class: 'h-full w-6' }})
   }
 
   getGui(): HTMLElement {

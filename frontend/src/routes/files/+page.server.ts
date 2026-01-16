@@ -1,6 +1,6 @@
-import type { Actions, PageServerLoad } from './$types';
-import { PUBLIC_API_URL } from '$env/static/public';
-import type { RawServerFileObjectMetadata, ServerFileObjectMetadata } from '$lib/models';
+import { PUBLIC_API_URL } from "$env/static/public";
+import type { RawServerFileObjectMetadata, ServerFileObjectMetadata } from "$lib/models";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async () => {
 	const res = await fetch(`${PUBLIC_API_URL}/files`);
