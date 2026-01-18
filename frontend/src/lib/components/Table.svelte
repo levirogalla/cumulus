@@ -1,8 +1,8 @@
-<script lang='ts'>
-   import { onMount } from 'svelte';
-  import type { ColDef, GridOptions, GridApi } from 'ag-grid-community';
-  import { createGrid } from '$lib/agGrid';
-  import { TABLE_THEME } from '$lib/constants';
+<script lang="ts">
+  import { onMount, onDestroy } from "svelte";
+  import type { ColDef, GridApi, GridOptions } from "ag-grid-community";
+  import { createGrid } from "$lib/agGrid";
+  import { TABLE_THEME } from "$lib/constants";
 
   type Row = any;
 
@@ -12,39 +12,43 @@
     class?: string;
   } = $props();
 
+  let gridElement: HTMLDivElement | null = null;
+  let grid: GridApi | null = null;
 
-  let gridElement: HTMLElement | unknown = null;
   onMount(() => {
-    const gridOptions: GridOptions<unknown> = {
-    rowData,
-    columnDefs,
-    theme: TABLE_THEME,
+    const gridOptions: GridOptions<Row> = {
+      rowData,
+      columnDefs,
+      theme: TABLE_THEME,
+      defaultColDef: {
+        sortable: true,
+        filter: true,
+        resizable: true,
+        flex: 1,
+        minWidth: 100
+      }
+    };
 
-    defaultColDef: {
-      sortable: true,
-      filter: true,
-      resizable: true,
-      flex: 1,
-      minWidth: 100
-    }
-  };
-    const grid: GridApi = createGrid(gridElement as HTMLElement, gridOptions);
-
-        // whenever rowData changes, push it into AG Grid
-  $effect(() => {
-    if (grid) {
-      grid.setGridOption('rowData', rowData);
-    }
+    grid = createGrid(gridElement!, gridOptions);
   });
-  })
 
-  let classes = $derived(`${className}`);
+  $effect(() => {
+    if (!grid) return;
+    grid.setGridOption("rowData", rowData);
+  });
 
+  $effect(() => {
+    if (!grid) return;
+    grid.setGridOption("columnDefs", columnDefs);
+  });
 
+  onDestroy(() => {
+    grid?.destroy();
+    grid = null;
+  });
+
+  let classes = $derived(className ?? "");
 </script>
 
-<svelte:head>
-   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
-</svelte:head>
 
 <div bind:this={gridElement} id="myGrid" class="{classes}"></div>

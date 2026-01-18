@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 axum = { version = "0.8.8", features = ["multipart"] }
+diesel = "2.3.5"
+diesel-async = { version = "0.7.4", features = ["postgres"] }
 dotenv = "0.15.0"
 opendal = { version = "0.55.0", features = ["services-s3"] }
 serde = "1.0.228"

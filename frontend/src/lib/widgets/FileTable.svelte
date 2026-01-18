@@ -17,10 +17,10 @@
     this.eGui = document.createElement('div') as HTMLElement;
     this.eGui.style.display = 'flex';
     this.eGui.style.justifyContent = 'space-between';
-    this.eGui.style.alignItems = 'center';
+    this.eGui.style.alignItems = 'start';
     // this.eGui.style.gap = '0.5rem'; // even spacing between icons
 
-    mount(ButtonIcon, { target: this.eGui as HTMLElement, props: { onclick: ()=>{console.log(params.data.key)}, iconSrc: "/download.png", class: "m-[1px]"}})
+    mount(ButtonIcon, { target: this.eGui as HTMLElement, props: { onclick: ()=>{console.log(params.data.key)}, iconSrc: "/download.png", class: "h-full w-6"}})
     mount(DeleteFileButton, { target: this.eGui as HTMLElement, props: { variant: "icon", key: params.data.key, class: 'h-full w-6' }})
   }
 

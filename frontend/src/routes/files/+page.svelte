@@ -71,16 +71,19 @@
 
 <div class="grid h-full grid-rows-[50px_auto]">
 		<div class="border-b border-black bg-gray-50">
-			<section class="flex h-full flex-row justify-between items-center">
+			<section class="flex h-full flex-row justify-between px-3 items-center">
 				<div></div>
-				<ButtonIcon
+				<!-- <ButtonIcon
 					onclick={() => (showUploadFileModal = true)}
 					class="m-1 p-0 h-7 w-8"
 					iconSrc="/upload.png"
 
 					height={6}
 					width={6}
-				/>
+				/> -->
+				<ButtonPrimary onclick={()=> (showUploadFileModal = true)}>
+					Upload Files
+				</ButtonPrimary>
 			</section>
 		</div>
 		<div>

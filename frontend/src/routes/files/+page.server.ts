@@ -17,8 +17,8 @@ export const load: PageServerLoad = async () => {
 };
 
 export const actions: Actions = {
-  upload: async ({ request }) => {
-    const req = new Request(`${PUBLIC_API_URL}/upload`, request);
+  upload: async ({ request, fetch }) => {
+    const req = new Request(`${PUBLIC_API_URL}/upload-file`, request);
     const res = await fetch(req);
 
     if (!res.ok) {
@@ -28,10 +28,10 @@ export const actions: Actions = {
     return { success: true };
   },
 
-	delete: async ({ request }) => {
+	delete: async ({ request, fetch }) => {
 		const data = await request.formData();
 		const key = data.get("key");
-		const req = new Request(`${PUBLIC_API_URL}/delete/${key}`, { method: "DELETE"});
+		const req = new Request(`${PUBLIC_API_URL}/delete-file/${key}`, { method: 'DELETE' });
     const res = await fetch(req);
 
     if (!res.ok) {
