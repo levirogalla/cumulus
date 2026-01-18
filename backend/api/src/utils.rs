@@ -3,7 +3,7 @@ use opendal::{Operator, services::S3};
 use std::env;
 
 // env vars
-pub struct ENV_VARS {
+pub struct Env {
     pub s3_key_id: String,
     pub s3_key_name: String,
     pub s3_key_secret: String,
@@ -12,7 +12,7 @@ pub struct ENV_VARS {
     pub s3_bucket_url: String,
 }
 
-impl ENV_VARS {
+impl Env {
     pub fn get() -> Self {
         dotenv().ok();
         Self {
@@ -27,7 +27,7 @@ impl ENV_VARS {
 }
 
 pub fn get_file_op() -> Option<Operator> {
-    let env_vars = ENV_VARS::get();
+    let env_vars = Env::get();
     // Create s3 backend builder.
     let builder = S3::default()
         // Set the root for s3, all operations will happen under this root.
@@ -60,7 +60,7 @@ pub fn get_file_op() -> Option<Operator> {
 }
 
 pub fn get_media_op() -> Option<Operator> {
-    let env_vars = ENV_VARS::get();
+    let env_vars = Env::get();
     // Create s3 backend builder.
     let builder = S3::default()
         // Set the root for s3, all operations will happen under this root.
