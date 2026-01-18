@@ -137,7 +137,7 @@ pub async fn upload_media_endpoint(
     State(state): State<AppState>,
     mut multipart: Multipart,
 ) -> Result<Response, Response> {
-    info!("received upload request");
+    info!("received upload media request");
     while let Some(field) = multipart
         .next_field()
         .await
@@ -154,6 +154,7 @@ pub async fn upload_media_endpoint(
                 file_data.len()
             );
 
+            println!("{:?}", file_name);
             upload_media(&state.mop, &file_name, &content_type, file_data.to_vec())
                 .await
                 .map_err(|err| {

@@ -50,4 +50,35 @@ impl TryFrom<opendal::Entry> for FileObjectMetadata {
 //     pub raw_data: FileRawData,
 // }
 
+pub mod database {
+    use std::time::SystemTime;
+    use diesel::prelude::*;
 
+   #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)] 
+   #[diesel(table_name=crate::schema::albums)]
+   pub struct Album {
+    pub id: i32,
+    pub name: String,
+    pub date_created: SystemTime 
+   }
+
+   #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)] 
+   #[diesel(table_name=crate::schema::albums_media)]
+   #[diesel(belongs_to(Album, foreign_key=album))]
+   #[diesel(belongs_to(Media, foreign_key=media))]
+   pub struct AlbumsMedia {
+    pub id: i32,
+    pub media: String,
+    pub album: String,
+    pub date_added: Option<SystemTime>,
+   }
+
+
+   #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)] 
+   #[diesel(table_name=crate::schema::media)]
+   #[diesel(primary_key(key))]
+   pub struct Media {
+    pub key: String,
+    pub date_uploaded: Option<SystemTime>
+   }
+}
