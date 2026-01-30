@@ -1,0 +1,1 @@
+pub const DEFAULT_THUMBNAIL_SIZE: u16 = 400;

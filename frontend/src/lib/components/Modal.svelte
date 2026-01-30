@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Snippet } from "svelte";
-    import { self } from 'svelte/legacy';
+	import ButtonX from "./ui/ButtonX.svelte";
+	import Darken from "./ui/Darken.svelte";
 
     let {
         children,
@@ -8,14 +9,14 @@
         title,
         closeOnBackdrop = true,
         closeOnEscape = true,
-        ariaLabel
+        class: className,
     }: {
         children?: Snippet;
         show: boolean;
         title?: string;
         closeOnBackdrop?: boolean;
         closeOnEscape?: boolean;
-        ariaLabel?: string;
+        class?: string;
     } = $props();
 
     const close = () => {
@@ -31,21 +32,24 @@
             close();
         }
     };
+
+    let classes = $derived(`w-full max-w-2xl rounded p-3 bg-white ${className}`)
 </script>
 
 {#if show}
-    <div
+<!-- @ts-ignore: TS2322 -->
+    <Darken
         class="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
         onclick={onBackdropClick}
         onkeydown={onKeydown}
         role="button"
-        tabindex="0"
+        show
     >
         <div
-            class="w-full max-w-2xl rounded bg-white p-3 "
+            class={classes}
             role="dialog"
             aria-modal="true"
-            aria-label={ariaLabel ?? title ?? "Modal"}
+            aria-label={"Modal"}
             tabindex="0"
             onclick={(e) => e.stopPropagation()}
             onkeydown={()=>{}}
@@ -57,19 +61,13 @@
                 {:else}
                   <div></div>
                 {/if}
-                <button
-                    type="button"
-                    class="rounded-md p-1 text-2xl leading-none text-slate-500 "
-                    aria-label="Close"
-                    onclick={close}
-                >
-                    ×
-                </button>
+                <ButtonX onclick={close}/>
+
             </header>
 
             <section>
                 {@render children?.()}
             </section>
         </div>
-    </div>
+    </Darken>
 {/if}

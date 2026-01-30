@@ -3,7 +3,5 @@
     "ftype",
     "opendal"
   ],
-  "cSpell.words": [
-    "metas"
-  ]
+  "cSpell.words": ["metas", "thiserror"]
 }

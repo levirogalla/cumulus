@@ -6,11 +6,22 @@
 	import ButtonPrimary from '$lib/components/ui/ButtonPrimary.svelte';
 	import ButtonSecondary from '$lib/components/ui/ButtonSecondary.svelte';
 	import type { PageData } from './$types';
+	import Toast from '$lib/components/Toast.svelte';
+	import Darken from '$lib/components/ui/Darken.svelte';
+	import Thumbnail from '$lib/components/Thumbnail.svelte';
+	import { NO_MEDIA_IMG } from '$lib/constants';
 
-  let { data }: { data: PageData } = $props();
+	let { data }: { data: PageData } = $props();
 
 	let selectedFileNames: string[] = $state([]);
 	let showUploadFileModal: boolean = $state(false);
+
+	let formLoading = $state(false);
+	let showSuccessToast = $state(false)
+
+	
+	let showMediaDetailsModal: boolean = $state(false);
+	let mediaUrl: string = $state(NO_MEDIA_IMG);
 
 	function handleFilesChange(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
@@ -24,15 +35,29 @@
 		scroller?.scrollTo({ top: scroller.scrollHeight, behavior: 'instant' as ScrollBehavior });
 	});
 
-	const noMediaImg = "/no_media.jpg"
-
+	const showMedia = async (key: string) => {
+		const res = await fetch(`/v1/media/${encodeURI(key)}`);
+		const blob = await res.blob();
+		console.log(blob);
+		mediaUrl = URL.createObjectURL(blob);
+		showMediaDetailsModal = true;
+	};
 </script>
 
 <Modal bind:show={showUploadFileModal} title="Upload">
 	<form
 		method="POST"
 		action="?/upload"
-		use:enhance
+		use:enhance={() => {
+			formLoading = true;
+			showUploadFileModal = false;
+			selectedFileNames = [];
+			return async ({ update }) => {
+				formLoading = false;
+				showSuccessToast = true;
+				update();
+			};
+		}}
 		enctype="multipart/form-data"
 		class="relative flex w-full flex-col"
 	>
@@ -57,20 +82,20 @@
 			<ButtonSecondary class="" type="button" onclick={() => (selectedFileNames = [])}>
 				clear
 			</ButtonSecondary>
-			<ButtonPrimary
-				class=""
-				type="submit"
-				onclick={async () => {
-					await invalidateAll();
-					showUploadFileModal = false;
-					selectedFileNames = [];
-				}}
-			>
-				Submit
-			</ButtonPrimary>
+			<ButtonPrimary class="" type="submit">Submit</ButtonPrimary>
 		</div>
 	</form>
 </Modal>
+
+<Modal bind:show={showMediaDetailsModal} title="Media Details">
+	<img src={mediaUrl} alt="" />
+</Modal>
+
+<Darken show={formLoading}></Darken>
+
+<Toast show={showSuccessToast} variant="success">
+	Upload Successful!
+</Toast>
 
 <div class="grid h-full min-h-0 grid-rows-[50px_1fr]">
 	<div class="border-b border-black bg-gray-50">
@@ -89,12 +114,16 @@
 	</div>
 	<div class="min-h-0 overflow-hidden">
 		<section class="h-full min-h-0">
-			<div bind:this={scroller} class="h-full min-h-0 overflow-y-auto overflow-x-hidden p-4">
+			<div bind:this={scroller} class="h-full min-h-0 overflow-x-hidden overflow-y-auto p-4">
 				<div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
 					{#each data.medias as media}
-						<div class="overflow-hidden rounded shadow">
-							<img src={noMediaImg} alt={"No Media"} class="h-48 w-full object-cover" />
-						</div>
+						<button
+							class="overflow-hidden rounded shadow"
+							onclick={async () => await showMedia(media.key)}
+						>
+							<Thumbnail key={media.key}></Thumbnail>
+							
+						</button>
 					{/each}
 				</div>
 			</div>

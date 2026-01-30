@@ -1,13 +1,6 @@
-trait PrintStr {
-  fn print_str(&self);
-}
+use std::fs;
 
-impl PrintStr for String {
-  fn print_str(&self) {
-      println!("{:?}", self);
-  }
-}
+use api::processing::generate_thumbnail;
 fn main() {
-  let my_string = "My string".to_string();
-  my_string.print_str();
+  let bytes = fs::read("/Users/levirogalla/Desktop/Screenshot 2025-11-04 at 3.22.02 AM.png").unwrap();
 }

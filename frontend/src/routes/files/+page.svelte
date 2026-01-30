@@ -1,17 +1,30 @@
-
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import ButtonPrimary from '$lib/components/ui/ButtonPrimary.svelte';
 	import ButtonSecondary from '$lib/components/ui/ButtonSecondary.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { mount } from 'svelte';
 	import FileTable from '$lib/widgets/FileTable.svelte';
 	import Sidebar from '$lib/widgets/Sidebar.svelte';
 	import ButtonIcon from '$lib/components/ui/ButtonIcon.svelte';
 	import Modal from '$lib/components/Modal.svelte';
-	import type { PageData, PageServerData } from './$types';
+	import type { PageData, PageProps, PageServerData } from './$types';
+	import type { BucketName } from '$lib/models';
+	import { navigating } from '$app/state';
 
-	let { data }: { data: PageData } = $props();
+
+	let { data, form }: PageProps = $props();
+
+	const getOtherBucketName = () => {
+		if (data.bucket == 'files') {
+			return 'media';
+		} else if (data.bucket == 'media') {
+			return 'files';
+		} else {
+			console.error("unrecognized bucket name, defaulting to 'files'");
+			return 'files';
+		}
+	};
 
 	// Track selected files so we can show feedback in the UI
 	let selectedFileNames: string[] = $state([]);
@@ -24,11 +37,10 @@
 	let showUploadFileModal = $state(false);
 </script>
 
-
 <Modal bind:show={showUploadFileModal} title="Upload">
 	<form
 		method="POST"
-		action="?/upload"
+		action="?/upload&bucket={data.bucket}"
 		use:enhance
 		enctype="multipart/form-data"
 		class="relative flex w-full flex-col"
@@ -69,26 +81,22 @@
 	</form>
 </Modal>
 
-<div class="grid h-full grid-rows-[50px_auto]">
-		<div class="border-b border-black bg-gray-50">
-			<section class="flex h-full flex-row justify-between px-3 items-center">
-				<div></div>
-				<!-- <ButtonIcon
-					onclick={() => (showUploadFileModal = true)}
-					class="m-1 p-0 h-7 w-8"
-					iconSrc="/upload.png"
 
-					height={6}
-					width={6}
-				/> -->
-				<ButtonPrimary onclick={()=> (showUploadFileModal = true)}>
-					Upload Files
-				</ButtonPrimary>
-			</section>
-		</div>
-		<div>
-			<section class="h-full">
-        <FileTable files={data.files} />
-			</section>
-		</div>
+<div class="grid h-full grid-rows-[50px_auto]">
+	<div class="border-b border-black bg-gray-50">
+		<section class="flex h-full flex-row items-center justify-between px-3">
+			<div></div>
+			<div>
+				<ButtonSecondary onclick={async () => await goto(`/files?bucket=${getOtherBucketName()}`)}
+					>Show {getOtherBucketName()[0].toUpperCase() + getOtherBucketName().slice(1)}</ButtonSecondary
+				>
+				<ButtonPrimary onclick={() => (showUploadFileModal = true)}>Upload Files</ButtonPrimary>
+			</div>
+		</section>
 	</div>
+	<div>
+		<section class="h-full">
+			<FileTable files={data.files} bucket={data.bucket} />
+		</section>
+	</div>
+</div>

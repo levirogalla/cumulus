@@ -1,9 +1,14 @@
 import { PUBLIC_API_URL } from "$env/static/public";
-import type { RawServerFileObjectMetadata, ServerFileObjectMetadata } from "$lib/models";
+import type { BucketName, RawServerFileObjectMetadata, ServerFileObjectMetadata } from "$lib/models";
 import type { Actions, PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async () => {
-	const res = await fetch(`${PUBLIC_API_URL}/files`);
+export const load: PageServerLoad = async ({ url }) => {
+	const bucket: BucketName = url.searchParams.get("bucket") == "media" ? "media" : "files";
+
+	const res = await fetch(`${PUBLIC_API_URL}/files?bucket=${bucket}`);
+	if (!res.ok) {
+		console.error(res)
+	}
 	const rawFiles: RawServerFileObjectMetadata[] = await res.json();
 
 	const files: ServerFileObjectMetadata[] = rawFiles.map((f) => ({
@@ -13,12 +18,12 @@ export const load: PageServerLoad = async () => {
 		) : null,
 	}));
 
-	return { files };
+	return { files, bucket: bucket };
 };
 
 export const actions: Actions = {
-  upload: async ({ request, fetch }) => {
-    const req = new Request(`${PUBLIC_API_URL}/upload-file`, request);
+  upload: async ({ request, fetch, url }) => {
+    const req = new Request(`${PUBLIC_API_URL}/upload-file?bucket=${url.searchParams.get("bucket") ?? "files"}`, request);
     const res = await fetch(req);
 
     if (!res.ok) {
@@ -28,10 +33,13 @@ export const actions: Actions = {
     return { success: true };
   },
 
-	delete: async ({ request, fetch }) => {
+	delete: async ({ request, fetch, url }) => {
 		const data = await request.formData();
-		const key = data.get("key");
-		const req = new Request(`${PUBLIC_API_URL}/delete-file/${key}`, { method: 'DELETE' });
+		const key = data.get("key")?.toString();
+		if (!key) {
+			return { success: false }
+		}
+		const req = new Request(`${PUBLIC_API_URL}/delete-file/${encodeURI(key)}?bucket=${url.searchParams.get("bucket") ?? "files"}`, { method: 'DELETE' });
     const res = await fetch(req);
 
     if (!res.ok) {

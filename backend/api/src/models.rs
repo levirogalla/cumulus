@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use opendal::{self, Metadata, raw::Timestamp};
+use opendal::{self, Metadata, Operator, raw::Timestamp};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,4 +81,36 @@ pub mod database {
     pub key: String,
     pub date_uploaded: Option<SystemTime>
    }
+}
+
+
+/// Internal data structure
+#[derive(Clone)]
+pub struct AppState {
+    /// file operator
+    pub fop: Operator,
+
+    /// media operator
+    pub mop: Operator,
+
+    /// thumbnail operator
+    pub top: Operator,
+}
+
+pub struct MediaOperators<'a> {
+    /// media operator
+    pub mop: &'a Operator,
+
+    /// thumbnail operator
+    pub top: &'a Operator
+}
+
+
+impl<'a> From<&'a AppState> for MediaOperators<'a> {
+    fn from(state: &'a AppState) -> Self {
+        MediaOperators {
+            mop: &state.mop,
+            top: &state.top
+        }
+    }
 }
