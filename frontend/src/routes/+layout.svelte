@@ -4,9 +4,11 @@
 	import type { LayoutData } from './$types';
 	import Sidebar from '$lib/widgets/Sidebar.svelte';
 	import type { Snippet } from 'svelte';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
 	let { data, children }: { data: LayoutData, children: Snippet } = $props();
 
+	console.log('Layout data:', PUBLIC_API_URL);
 
 </script>
 

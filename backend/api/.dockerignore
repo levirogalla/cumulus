@@ -1,0 +1,17 @@
+# Ignore Rust build artifacts and development files
+target/
+**/target/
+Cargo.lock
+# Ignore editor/IDE files
+.idea/
+.vscode/
+*.swp
+# Ignore environment files
+.env
+.env.*
+# Ignore version control artifacts
+.git/
+.gitignore
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db

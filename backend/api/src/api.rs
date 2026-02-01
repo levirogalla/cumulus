@@ -1,6 +1,6 @@
 use crate::constants::DEFAULT_THUMBNAIL_SIZE;
 use crate::models::MediaOperators;
-use opendal::Buffer;
+use futures::{Stream, StreamExt};
 /// api endpoints
 use opendal::{Operator, options::WriteOptions};
 use tracing::{debug, info};
@@ -40,6 +40,20 @@ pub async fn upload_file(
     info!("successfully uploaded file: {}", name);
     debug!("file metadata: {:?}", metadata);
     Ok(metadata)
+}
+
+
+pub async fn upstream_media<S>(
+    mops: MediaOperators<'_>,
+    key: &str,
+    ftype: &str,
+    mut bytes: S,
+) 
+where S: Stream<Item=u8> + Unpin,
+{
+    while let Some(byte) = bytes.next().await {
+        println!("byte: {:?}", byte);
+    }
 }
 
 pub async fn upload_media(

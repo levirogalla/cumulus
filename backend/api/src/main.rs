@@ -15,6 +15,7 @@ use api::{
     models::FileObjectMetadata,
     utils::{get_file_op, get_media_op},
 };
+use futures::TryStreamExt;
 use serde::Deserialize;
 use tracing::{debug, info};
 use tracing_subscriber::FmtSubscriber;
@@ -58,6 +59,7 @@ async fn main() {
 pub async fn check_health_endpoint() -> &'static str {
     return check_health().await;
 }
+
 #[derive(Deserialize, Debug)]
 enum QueryBucket {
     #[serde(rename = "files")]
@@ -170,6 +172,41 @@ pub async fn get_media_endpoint(
     Ok(data)
 }
 
+// pub async fn upload_media_endpoint2(
+//     State(state): State<AppState>,
+//     mut multipart: Multipart,
+// ) -> Result<Response, Response> {
+//     info!("received upload media request");
+//     while let Some(field) = multipart
+//         .next_field()
+//         .await
+//         .map_err(|_| StatusCode::BAD_REQUEST.into_response())?
+//     {
+//         if let Some("medias") = field.name() {
+//             let file_name = field.file_name().unwrap_or("NO_NAME").to_owned();
+//             let content_type = field.content_type().unwrap_or("NO_NAME").to_owned();
+
+//             let file_data = field.stream();
+
+//             debug!(
+//                 "uploading media: {}, content_type: {}, size: {} bytes",
+//                 file_name,
+//                 content_type,
+//                 file_data.len()
+//             );
+
+//             println!("{:?}", file_name);
+//             upload_media((&state).into(), &file_name, &content_type, file_data.to_vec())
+//                 .await
+//                 .map_err(|err| {
+//                     tracing::error!("error uploading file: {:?}", err);
+//                     (StatusCode::INTERNAL_SERVER_ERROR, err).into_response()
+//                 })?;
+//         }
+//     }
+//     Ok(StatusCode::OK.into_response())
+// }
+
 pub async fn upload_media_endpoint(
     State(state): State<AppState>,
     mut multipart: Multipart,
@@ -183,7 +220,9 @@ pub async fn upload_media_endpoint(
         if let Some("medias") = field.name() {
             let file_name = field.file_name().unwrap_or("NO_NAME").to_owned();
             let content_type = field.content_type().unwrap_or("NO_NAME").to_owned();
+
             let file_data = field.bytes().await.unwrap();
+
             debug!(
                 "uploading media: {}, content_type: {}, size: {} bytes",
                 file_name,
