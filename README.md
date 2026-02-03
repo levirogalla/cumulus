@@ -2,6 +2,17 @@
 
 This project is a **personal cloud-native photo and file library** optimized for object storage.
 
+## Docs
+
+To deploy locally, will fetch most recent changes from main:
+`./deploy local --fetch`
+
+To deploy local with current workdir
+`./deploy local`
+
+To deploy to server
+`./deploy remote`
+
 ## Key Concepts
 
 - **Immutable Blobs:**  
