@@ -7,11 +7,21 @@ This project is a **personal cloud-native photo and file library** optimized for
 To deploy locally, will fetch most recent changes from main:
 `./deploy local --fetch`
 
-To deploy local with current workdir
+To deploy local with current workdir:
 `./deploy local`
 
-To deploy to server
+To deploy to server:
 `./deploy remote`
+
+You can also deploy directly with docker compose:
+`ORIGIN=<origin> docker compose up --build`
+
+Its important to set the origin to the origin url you plan to access the app from. The deploy script automatically sets it to localhost:3001 for local deploy and the server url origin for remote deploy.
+
+Finally, each app can be manually started:
+Api: `cargo run --bin api`
+Frontend: `npm run dev`
+The database should still be started with docker.
 
 ## Key Concepts
 

@@ -1,12 +1,17 @@
 #!/bin/bash
 set -e
 
+PORT=3001
 SERVER=100.117.20.4
 SERVER_USER=tadster
 SERVER_PROJECT_DIR=/home/$SERVER_USER/projects/cumulus
 
 LOCATION=$1
 OPTION=${2:-}
+
+
+# so svelte knows where to accepts requests from
+: "${ORIGIN:=http://localhost:$PORT}"
 
 deploy_local() {
   FETCH=false
@@ -47,7 +52,8 @@ deploy_local() {
     git reset --hard origin/main
   fi
 
-  docker compose up --build
+  echo "building and deploying for $ORIGIN..."
+  ORIGIN=$ORIGIN docker compose up --build
 }
 
 if ping -c1 "$SERVER" >/dev/null 2>&1; then
@@ -60,7 +66,7 @@ fi
 if [ "$LOCATION" = "local" ]; then
   deploy_local "$OPTION"
 elif [ "$LOCATION" = "remote" ]; then
-  ssh "$SERVER_USER@$SERVER" "cd $SERVER_PROJECT_DIR && git pull && ./deploy.sh local --yes --fetch"
+  ssh "$SERVER_USER@$SERVER" "cd $SERVER_PROJECT_DIR && git pull && ORIGIN=http://$SERVER:$PORT ./deploy.sh local --yes --fetch"
 else
   echo "please provide location to deploy to (local or remote)"
   exit 1

@@ -2,6 +2,9 @@ services:
   api:
     build:
       context: ./backend/api
+      
+    # TODO: handle the sigterm signal properly in the api
+    stop_grace_period: 0.5s
     image: cumulus-api:latest
     container_name: cumulus-api
     env_file: ./backend/api/.env
@@ -19,8 +22,9 @@ services:
     # env_file: ./frontend/.env
     environment:
       - PUBLIC_API_URL=http://api:3000
+      - ORIGIN=${ORIGIN}
     ports:
-      - "3001:3000"
+      - "3001:3001"
     restart: always
     depends_on:
       api:
