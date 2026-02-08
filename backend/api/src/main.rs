@@ -1,26 +1,30 @@
+use std::{fmt::Display, pin::pin, sync::Arc};
+
 use axum::{
     Json, Router,
-    extract::{Multipart, Path, Query, State},
+    extract::{DefaultBodyLimit, Multipart, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, get, post},
 };
 
-use api::{models::AppState, utils::{e_to_res, get_thumbnail_op}};
 use api::{
     api::{
-        check_health, delete_file, get_all_files, get_all_medias, get_media, upload_file,
-        upload_media,
+        check_health, delete_file, task_generate_thumbnails_run, get_all_files, get_all_medias, get_media, upload_chunk_stream, upload_file, upload_media
     },
+    constants::DEFAULT_MAX_CONCURRENT_UPLOAD_STREAMS,
     models::FileObjectMetadata,
-    utils::{get_file_op, get_media_op},
+    utils::{get_file_op, get_media_op, unfold_field},
 };
-use futures::TryStreamExt;
+use api::{
+    models::AppState,
+    utils::{e_to_res, get_thumbnail_op},
+};
+use futures::{StreamExt, TryStreamExt};
 use serde::Deserialize;
+use tokio::task::JoinSet;
 use tracing::{debug, info};
 use tracing_subscriber::FmtSubscriber;
-
-
 
 #[tokio::main]
 async fn main() {
@@ -41,13 +45,15 @@ async fn main() {
         .route("/", get(check_health_endpoint))
         // files
         .route("/files", get(get_all_files_endpoint))
-        .route("/upload-file", post(upload_file_endpoint))
+        .route("/upload-file", post(upload_files_endpoint))
+        .layer(DefaultBodyLimit::max(1024 * 1024 * 500)) // 500mb
         .route("/delete-file/{key}", delete(delete_file_endpoint))
         // media
         .route("/media", get(get_all_medias_endpoint))
         .route("/media/{key}", get(get_media_endpoint))
         .route("/media/{key}/thumbnail", get(get_thumbnail_endpoint))
         .route("/upload-media", post(upload_media_endpoint))
+        .route("/task/{name}/run", post(run_task_endpoint))
         // state
         .with_state(state);
     // run our app with hyper, listening globally on port 3000
@@ -95,40 +101,38 @@ pub async fn delete_file_endpoint(
     Ok(StatusCode::OK.into_response())
 }
 
-pub async fn upload_file_endpoint(
+pub async fn upload_files_endpoint(
     Query(bucket_params): Query<QueryBucketParams>,
     State(state): State<AppState>,
     mut multipart: Multipart,
-) -> Result<Response, Response> {
+) -> Result<Response, (StatusCode, String)> {
     info!("received upload request");
     let op = match bucket_params.bucket {
         QueryBucket::Files => &state.fop,
         QueryBucket::Media => &state.mop,
     };
+
     while let Some(field) = multipart
         .next_field()
         .await
-        .map_err(|_| StatusCode::BAD_REQUEST.into_response())?
+        .map_err(|err| (StatusCode::BAD_REQUEST, err.to_string()))?
     {
         if let Some("files") = field.name() {
             let file_name = field.file_name().unwrap_or("NO_NAME").to_owned();
             let content_type = field.content_type().unwrap_or("NO_NAME").to_owned();
-            let file_data = field.bytes().await.unwrap();
             debug!(
-                "uploading file: {}, content_type: {}, size: {} bytes",
-                file_name,
-                content_type,
-                file_data.len()
+                "received file: {}, content_type: {} | reading bytes...",
+                file_name, content_type,
             );
 
-            upload_file(op, &file_name, &content_type, file_data.to_vec())
-                .await
-                .map_err(|err| {
-                    tracing::error!("error uploading file: {:?}", err);
-                    (StatusCode::INTERNAL_SERVER_ERROR, err).into_response()
-                })?;
+            let chunks = unfold_field(field);
+
+            // TODO: consider improving this by writing to disk first and then queue a background task to upload the files, this my increase user performance on the client side if the server connection is slow.
+            _ = upload_chunk_stream(&op, &file_name, &content_type, pin!(chunks)).await;
         }
     }
+
+    // while
     Ok(StatusCode::OK.into_response())
 }
 
@@ -172,41 +176,6 @@ pub async fn get_media_endpoint(
     Ok(data)
 }
 
-// pub async fn upload_media_endpoint2(
-//     State(state): State<AppState>,
-//     mut multipart: Multipart,
-// ) -> Result<Response, Response> {
-//     info!("received upload media request");
-//     while let Some(field) = multipart
-//         .next_field()
-//         .await
-//         .map_err(|_| StatusCode::BAD_REQUEST.into_response())?
-//     {
-//         if let Some("medias") = field.name() {
-//             let file_name = field.file_name().unwrap_or("NO_NAME").to_owned();
-//             let content_type = field.content_type().unwrap_or("NO_NAME").to_owned();
-
-//             let file_data = field.stream();
-
-//             debug!(
-//                 "uploading media: {}, content_type: {}, size: {} bytes",
-//                 file_name,
-//                 content_type,
-//                 file_data.len()
-//             );
-
-//             println!("{:?}", file_name);
-//             upload_media((&state).into(), &file_name, &content_type, file_data.to_vec())
-//                 .await
-//                 .map_err(|err| {
-//                     tracing::error!("error uploading file: {:?}", err);
-//                     (StatusCode::INTERNAL_SERVER_ERROR, err).into_response()
-//                 })?;
-//         }
-//     }
-//     Ok(StatusCode::OK.into_response())
-// }
-
 pub async fn upload_media_endpoint(
     State(state): State<AppState>,
     mut multipart: Multipart,
@@ -231,12 +200,17 @@ pub async fn upload_media_endpoint(
             );
 
             println!("{:?}", file_name);
-            upload_media((&state).into(), &file_name, &content_type, file_data.to_vec())
-                .await
-                .map_err(|err| {
-                    tracing::error!("error uploading file: {:?}", err);
-                    (StatusCode::INTERNAL_SERVER_ERROR, err).into_response()
-                })?;
+            upload_media(
+                (&state).into(),
+                &file_name,
+                &content_type,
+                file_data.to_vec(),
+            )
+            .await
+            .map_err(|err| {
+                tracing::error!("error uploading file: {:?}", err);
+                (StatusCode::INTERNAL_SERVER_ERROR, err).into_response()
+            })?;
         }
     }
     Ok(StatusCode::OK.into_response())
@@ -249,4 +223,24 @@ pub async fn get_thumbnail_endpoint(
     info!("received get request for thumbnail: {}", key);
     let data = get_media(&state.top, &key).await.map_err(e_to_res)?;
     Ok(data)
+}
+
+pub async fn run_task_endpoint(
+    State(state): State<AppState>,
+    Path(task): Path<Task>,
+) -> Result<(), (StatusCode, String)> {
+    info!("received request to run task: {:?}", task);
+
+    match &task {
+        Task::GenerateThumbnails => {
+            task_generate_thumbnails_run(state.clone().into()).await
+        }
+    } 
+    Ok(())
+}
+
+#[derive(Debug, Deserialize)]
+pub enum Task {
+    #[serde(rename="generate-thumbnails")]
+    GenerateThumbnails,
 }

@@ -1,8 +1,13 @@
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{
+    extract::{Multipart, multipart::Field},
+    http::StatusCode,
+    response::IntoResponse,
+};
 use dotenv::dotenv;
+use futures::{Stream, StreamExt};
 use image::io;
 use opendal::{Operator, services::S3};
-use std::{env, io::Error};
+use std::{env, io::Error, pin::pin};
 
 // env vars
 pub struct Env {
@@ -76,4 +81,10 @@ pub fn get_thumbnail_op() -> Option<Operator> {
 pub fn e_to_res(err: String) -> (StatusCode, String) {
     tracing::error!("internal error: {:?}", err);
     (StatusCode::INTERNAL_SERVER_ERROR, err)
+}
+
+pub fn unfold_field(field: Field) -> impl Stream<Item = Vec<u8>> {
+    futures::stream::unfold(field, |mut field| async {
+        field.chunk().await.expect("unable to get chunk from multipart field").map(|chk| (chk.into(), field))
+    })
 }
